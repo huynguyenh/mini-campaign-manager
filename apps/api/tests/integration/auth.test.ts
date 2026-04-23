@@ -6,13 +6,16 @@ import { User } from '../../src/db/models/index.js';
 
 const app = createApp();
 
+// File-level lifecycle — both describe blocks share one connection,
+// closed only after the last test completes.
+beforeAll(async () => {
+  await sequelize.authenticate();
+});
+afterAll(async () => {
+  await sequelize.close();
+});
+
 describe('POST /auth/register', () => {
-  beforeAll(async () => {
-    await sequelize.authenticate();
-  });
-  afterAll(async () => {
-    await sequelize.close();
-  });
   beforeEach(async () => {
     await User.destroy({ where: { email: 'newuser@example.com' } });
   });
@@ -53,6 +56,7 @@ describe('POST /auth/login', () => {
       .post('/auth/register')
       .send({ email: 'loginme@example.com', name: 'Login', password: 'pass1234' });
   });
+  beforeEach(() => Promise.resolve());
 
   it('logs in with correct credentials', async () => {
     const res = await request(app)
