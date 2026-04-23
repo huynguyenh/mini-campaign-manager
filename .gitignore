@@ -27,6 +27,7 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.claude/
 
 postgres-data/
 *.sqlite
