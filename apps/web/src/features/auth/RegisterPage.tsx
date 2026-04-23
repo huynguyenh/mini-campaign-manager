@@ -34,7 +34,7 @@ export function RegisterPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
+      <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-5">
         <div>
           <h2 className="font-display text-2xl font-semibold text-ink">Create an account</h2>
           <p className="mt-1 text-sm text-firefly-400">Get started in under a minute.</p>
@@ -50,7 +50,7 @@ export function RegisterPage() {
               {...register('email')}
             />
             {errors.email && (
-              <span className="mt-1 block text-xs text-severity-high">{errors.email.message}</span>
+              <span className="mt-1 block text-xs text-red-600">{errors.email.message}</span>
             )}
           </label>
 
@@ -63,7 +63,7 @@ export function RegisterPage() {
               {...register('name')}
             />
             {errors.name && (
-              <span className="mt-1 block text-xs text-severity-high">{errors.name.message}</span>
+              <span className="mt-1 block text-xs text-red-600">{errors.name.message}</span>
             )}
           </label>
 
@@ -76,7 +76,7 @@ export function RegisterPage() {
               {...register('password')}
             />
             {errors.password && (
-              <span className="mt-1 block text-xs text-severity-high">
+              <span className="mt-1 block text-xs text-red-600">
                 {errors.password.message}
               </span>
             )}

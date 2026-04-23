@@ -67,7 +67,7 @@ export function CampaignDetailPage() {
     const notFound = /not found/i.test(msg);
     return (
       <div className="mx-auto max-w-md rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-severity-high">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
           !
         </div>
         <h3 className="mt-4 font-display text-lg font-semibold text-ink">
@@ -317,7 +317,7 @@ function StatTile({
       ? 'text-emerald-900'
       : tone === 'severity'
         ? value > 0
-          ? 'text-severity-high'
+          ? 'text-red-600'
           : 'text-firefly-400'
         : 'text-ink';
   return (
@@ -338,7 +338,7 @@ function RecipientStatusPill({ status }: { status: 'pending' | 'sent' | 'failed'
   const styles: Record<typeof status, string> = {
     pending: 'bg-ecru-200 text-firefly-500 ring-ecru-300/60',
     sent: 'bg-emerald-100 text-emerald-900 ring-emerald-300/60',
-    failed: 'bg-red-50 text-severity-high ring-red-200',
+    failed: 'bg-red-50 text-red-600 ring-red-200',
   };
   return (
     <span

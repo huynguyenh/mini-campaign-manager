@@ -18,7 +18,7 @@ const VARIANT_CLS: Record<Variant, string> = {
   ghost:
     'bg-transparent text-ink hover:bg-ecru-200 focus-visible:ring-emerald-500',
   danger:
-    'bg-white text-severity-high ring-1 ring-red-200 hover:bg-red-50 hover:ring-red-300 focus-visible:ring-red-400',
+    'bg-white text-red-600 ring-1 ring-red-200 hover:bg-red-50 hover:ring-red-300 focus-visible:ring-red-400',
 };
 
 const SIZE_CLS: Record<Size, string> = {

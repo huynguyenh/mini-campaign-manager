@@ -18,9 +18,10 @@ const CARD_TONE: Record<
   { gradient: string; stripe: string; hoverRing: string }
 > = {
   draft: {
-    gradient: 'bg-gradient-to-br from-ecru-200 via-white to-white',
-    stripe: 'bg-gradient-to-r from-[#9B9A4C] to-[#E3E2BC]',
-    hoverRing: 'hover:border-[#9B9A4C]/60',
+    // Cool teal — arbitrary-value hex to side-step any Tailwind config scan issues
+    gradient: 'bg-gradient-to-br from-[#C0E0EF] via-[#D8EDF5] to-white',
+    stripe: 'bg-gradient-to-r from-[#09242E] to-[#478FB4]',
+    hoverRing: 'hover:border-[#478FB4]',
   },
   scheduled: {
     gradient: 'bg-gradient-to-br from-[#DFF2FE] via-white to-white',
@@ -70,7 +71,7 @@ export function CampaignsListPage() {
       </div>
 
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-severity-high">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
           Failed to load campaigns: {extractApiError(error)}
         </div>
       )}

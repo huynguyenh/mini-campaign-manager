@@ -4,14 +4,14 @@ import { cn } from '../lib/cn';
 // Solid, saturated backgrounds — no more washed-out pills. Each status has a
 // distinct hue lifted from the ZenLabs palette + severity tokens.
 const STYLES: Record<CampaignStatus, string> = {
-  draft: 'bg-ecru-300 text-[#636230] ring-ecru-400/80',
+  draft: 'bg-[#1A3645] text-white ring-[#09242E]',
   scheduled: 'bg-[#DFF2FE] text-[#0069A8] ring-[#B8E6FE]',
   sending: 'bg-[#FEF3C7] text-[#92400E] ring-[#FCD34D]',
   sent: 'bg-emerald-100 text-emerald-900 ring-emerald-300',
 };
 
 const DOTS: Record<CampaignStatus, string> = {
-  draft: 'bg-[#636230]',
+  draft: 'bg-[#43CE81]',
   scheduled: 'bg-[#0084D1]',
   sending: 'bg-amber-500 animate-pulse',
   sent: 'bg-emerald-700',

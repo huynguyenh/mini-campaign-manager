@@ -93,14 +93,14 @@ export function CreateCampaignPage() {
         </p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} noValidate className="space-y-5">
         <Card>
           <CardBody className="space-y-5">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-ink">Name</span>
               <input className={inputCls} placeholder="Welcome series" {...register('name')} />
               {errors.name && (
-                <span className="mt-1 block text-xs text-severity-high">
+                <span className="mt-1 block text-xs text-red-600">
                   {errors.name.message}
                 </span>
               )}
@@ -114,7 +114,7 @@ export function CreateCampaignPage() {
                 {...register('subject')}
               />
               {errors.subject && (
-                <span className="mt-1 block text-xs text-severity-high">
+                <span className="mt-1 block text-xs text-red-600">
                   {errors.subject.message}
                 </span>
               )}
@@ -129,7 +129,7 @@ export function CreateCampaignPage() {
                 {...register('body')}
               />
               {errors.body && (
-                <span className="mt-1 block text-xs text-severity-high">
+                <span className="mt-1 block text-xs text-red-600">
                   {errors.body.message}
                 </span>
               )}

@@ -67,7 +67,7 @@ export function LoginPage() {
 
       {/* RIGHT: Auth card */}
       <div className="flex items-center justify-center p-6">
-        <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
+        <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-5">
           <div>
             <h2 className="font-display text-2xl font-semibold text-ink">Sign in</h2>
             <p className="mt-1 text-sm text-firefly-400">Welcome back. Pick up where you left off.</p>
@@ -92,7 +92,7 @@ export function LoginPage() {
                 {...register('email')}
               />
               {errors.email && (
-                <span className="mt-1 block text-xs text-severity-high">
+                <span className="mt-1 block text-xs text-red-600">
                   {errors.email.message}
                 </span>
               )}
@@ -107,7 +107,7 @@ export function LoginPage() {
                 {...register('password')}
               />
               {errors.password && (
-                <span className="mt-1 block text-xs text-severity-high">
+                <span className="mt-1 block text-xs text-red-600">
                   {errors.password.message}
                 </span>
               )}
