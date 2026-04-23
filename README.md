@@ -114,55 +114,103 @@ All endpoints return a consistent error shape on failure:
 - Edit / delete only when `status = 'draft'`.
 - `scheduled_at` must be strictly in the future.
 - `send` transitions `draft|scheduled → sending → sent`; re-sending a `sent` campaign returns `409 CAMPAIGN_ALREADY_SENT`.
-- Cross-user access is `403 FORBIDDEN` (not `404`), to avoid leaking which campaign IDs exist via timing.
+- Cross-user access returns `404 NOT_FOUND` (not `403`) so callers can't probe which campaign IDs exist.
 - `/stats` is guarded against divide-by-zero; `open_rate` uses `sent` as denominator (not `total`).
 
 ---
 
 ## Product acceptance criteria
 
-See the accompanying plan for the full **14 use cases × happy + unhappy paths**. Highlights:
+**31 technical ACs (20 backend + 7 frontend + 4 infra) and 14 product use cases with 47 unhappy-path flows.** The full list is in [docs/plan.md](docs/plan.md) and verified evidence per AC lives in [docs/ac-evidence.md](docs/ac-evidence.md).
 
+Highlights:
 - **Login:** generic `Invalid email or password` for wrong password AND unknown email (no user enumeration).
 - **Detail page:** send/open rate render `—` when denominator is 0, rather than a misleading `0%`.
 - **Scheduling:** times are displayed in the user's local timezone, stored as UTC.
-- **Send:** worker is server-side — closing the tab does not kill the send.
+- **Send:** worker is server-side — closing the tab does not kill the send. State transition is atomic — concurrent `/send` requests cannot both win (verified by integration test).
 - **Recipient upsert:** POST `/recipients` with an existing email returns the existing row without overwriting the stored name (documented).
 
 ---
 
 ## How I Used Claude Code
 
-This project was built in a single 6-hour session using Claude Code (Opus 4.7).
-The process was explicit about *what I delegated*, *what I reviewed*, and *what I refused to delegate.*
+This project was built in a single ~6-hour session using Claude Code (Opus 4.7).
+What follows is an honest account of *what I set up before the clock started*, *what I delegated during the session*, *what I reviewed*, and *what I refused to delegate.*
 
-### What I delegated
+### Pre-session setup (none of this was written for this interview)
+
+All of it already existed in my Claude workspace — public mirror: **https://github.com/huynguyenh/skills**.
+
+| Pre-built asset | What it does | Where it shows up in this deliverable |
+|---|---|---|
+| `hnh-plan` skill | Principal-engineer-level plan template (Context, Decision, ACs, Scope, System Impact, Step-by-step, Risk & Mitigation, Testing, Observability, Deployment) | [docs/plan.md](docs/plan.md) follows it verbatim |
+| `hnh-review-pr` skill | Deep PR review with build verification, architecture, DRY, test-coverage flags | Inspired the parallel-agent self-review that produced the `chore: hardening pass` commit |
+| `hnh-design-guideline` skill | ZenLabs brand system — Emerald 900 / Firefly navy / Ecru palette, Rubik + Inter typography, severity tokens, card patterns | Applied in the mid-session UI refresh (emerald login hero, gradient status cards) |
+| `hnh-notion` skill + **Claude in Chrome MCP** | Read challenge brief from a Notion share URL | First action of the session |
+| **Claude Preview MCP** | Boot Vite / browser inside the IDE with screenshot and DOM tools | Captured evidence screenshots for every FE AC |
+| Global `CLAUDE.md` + `memory/` | Git identity, PR/commit conventions (no AI attribution), credential location, prior feedback | Drove commit style and branch discipline throughout |
+
+See [docs/skills-catalog.md](docs/skills-catalog.md) for the full list.
+
+### I planned first; code came second
+
+The very first deliverable was not code — it was [docs/plan.md](docs/plan.md):
+
+- **31 technical ACs** (20 backend, 7 frontend, 4 infra) — every one worded to be testable in one sentence
+- **14 product use cases** with happy + 47 unhappy paths (reviewer asked "this feels too technical, frame it around use cases" — so I added a product view alongside the engineering one)
+- **Explicit risk table** with mitigations (scope creep, JWT leak, stuck-in-sending, Sequelize N+1)
+- **Testing strategy**: unit-test stats math, integration-test every state-machine transition + cross-user access + concurrent send; manual-checklist the UI
+- **11 implementation steps**, each ending in one commit — every commit independently reviewable
+
+The plan was negotiated with the reviewer *before any code was written*. That conversation is preserved in [docs/session-log.md](docs/session-log.md).
+
+### What I delegated to Claude
 
 - **Boilerplate scaffolding**: yarn workspace layout, Dockerfile, tsconfig, vite config, tailwind config — well-understood templates where the cost of a mistake is small and the feedback loop is fast.
-- **Zod schema plumbing** in `packages/shared` once I locked down the shape in the plan.
+- **Zod schema plumbing** in `packages/shared` once I locked the shape in the plan.
 - **React Query hook wrapping** around the API endpoints (`apps/web/src/api/hooks.ts`) — mechanical, pattern-driven.
-- **Test scaffolding** — integration tests using Supertest, the state-machine assertion tests, and the stats unit tests.
+- **Test scaffolding** — integration tests using Supertest, the state-machine assertion tests, the stats unit tests.
 
-### 2–3 real prompts I used
+### 3 real prompts from this session
 
-1. *"Write a plan for a Mini Campaign Manager... Use the plan skill. Use ticket tag INTERVIEW-S5. Tech: Yarn workspaces monorepo (backend: Node/Express/PG/Sequelize/JWT/zod; frontend: React 18 + Vite + TS + React Query + Redux + Tailwind). At least 3 meaningful tests. Plan should cover: repo scaffolding, schema/migrations, auth, campaign CRUD, async send worker, stats, frontend pages, testing strategy, docker-compose, submission."*
+1. *"My interview session ... use our plan skills, github review skills, and security check skills. Test with chrome extension. Challenge: https://s5tech.notion.site/AI-Full-Stack-Code-Challenge-..."*
+   → kicked off the session, Claude loaded the `hnh-plan` / `hnh-review-pr` / `security-review` skills and read the Notion brief via the Chrome MCP.
 2. *"Show me list of ACs. That's ok but feels too technical, make another approach in terms of products — list use cases and ACs on happy / unhappy cases."*
-3. *"Proceed with implementation."* — then Claude worked the plan step by step, committing at the end of each vertical.
+   → produced the 14 use cases × 47 unhappy-path matrix without replacing the existing technical ACs.
+3. *"Now you check the current ACs list, record all of them for me as evidence, 1 record per AC."*
+   → produced [docs/ac-evidence.md](docs/ac-evidence.md) by running curl + psql introspection + preview screenshots against the live stack.
 
 ### Where Claude Code was wrong or needed correction
 
-- **Planned `packages/shared` imports using `.js` extensions** (required for ESM) but initially imported the logger with a wrong relative path in the seeder (`../utils/logger.js` where it needed `../../`). Caught during code-read before any test ran.
-- **Over-engineered the send worker first pass** — initially proposed BullMQ + Redis. I pushed back ("too much infra for 6 hours, the spec says 'simulate'") and we converged on in-process `setImmediate`.
-- **Zod `updateCampaignSchema`**: first version allowed an empty body and would have silently no-op'd; had to add `.refine(data => Object.keys(data).length > 0)`.
-- **Initial FE stats rendering**: `0 / 0 = 0%` would have misled the user into thinking opens were actually `0%`. I flagged the divide-by-zero edge case in the plan and we rendered `—` instead when the denominator was zero.
+- **First-pass send worker was over-engineered** — initially proposed BullMQ + Redis. I pushed back ("spec says simulate, 6-hour budget") and we converged on in-process `setImmediate`. Correct call for this scope, documented follow-up for production.
+- **Seed file had a wrong relative import path** — `../utils/logger.js` where it needed `../../`, from the nested `db/seeders/` location. Caught during code-read before running.
+- **Concurrent-send race** — the initial `triggerSend` was check-then-act (read status, then write). A parallel self-review agent caught this exact bug; I replaced it with an atomic `UPDATE ... WHERE status IN ('draft','scheduled')` + a real `Promise.all` integration test that would fail under the old code.
+- **403 vs 404 on cross-user access** — my first pass returned 403, which leaks campaign-ID existence. Self-review flagged the side channel, collapsed both to 404, updated the FE error-message mapping to match.
+- **Zod `updateCampaignSchema`** — first version allowed an empty PATCH body. Added `.refine(data => Object.keys(data).length > 0)`.
+- **FE stats rendering** — `0 / 0 = 0%` would have misled users. I flagged this in the plan and the UI renders `—` when the denominator is zero.
+- **Draft card blended into the ecru page bg** — the reviewer caught this in the browser; I'd picked `firefly-*` Tailwind theme classes that weren't being re-scanned by HMR. Switched to arbitrary hex values (`from-[#C0E0EF]`) which are always JIT-picked.
+- **Form errors not rendering red** — same Tailwind theme-scan issue on `text-severity-high`; swapped for stock `text-red-600` + `noValidate` so the browser's native HTML5 tooltip stopped shadowing the zod errors.
 
 ### What I would not let Claude Code do
 
 - **Choose the JWT storage strategy** — I chose in-memory (Redux) + `sessionStorage` rehydration over `httpOnly` cookies after weighing the tradeoffs myself. Security defaults are a judgment call, not a delegation target.
-- **Author the README's "how I used AI" narrative from scratch** — this section is a reflection on *my* judgment about AI, so I wrote and edited it manually.
-- **Commit without reviewing the diff** — every commit in this repo was opened in the editor and read before landing. Claude does not push for me.
-- **Decide whether the state machine belongs in the service or the model** — architectural decisions (service-layer checks with a helper `requireDraft`, ownership check before any state transition) were made explicitly by me in the plan before Claude wrote code.
-- **Handle secrets** — `.env` is git-ignored; `JWT_SECRET` is never hardcoded; AI was never shown a real secret.
+- **Decide the state-machine architecture** — "state checks in the service layer, not the model hook" was a decision I made in the plan before Claude wrote any campaign code.
+- **Act on the security review without my review** — the self-review surfaced findings; I triaged CRITICAL vs WARNING vs NOTE myself and decided which to fix inline vs document as follow-ups.
+- **Handle secrets** — `.env` is git-ignored, `JWT_SECRET` is enforced to ≥32 chars, compose fails fast without one; AI never sees a real secret.
+- **Push to main unreviewed** — every commit was read in terminal diff before landing. The final submission came as a PR (not a direct main push) so the reviewer has a single reading surface.
+- **Author this "How I Used Claude Code" section from scratch** — Claude drafted; I rewrote.
+
+### Submission artefacts (all in this repo)
+
+| File | What it is |
+|---|---|
+| [docs/plan.md](docs/plan.md) | The principal-engineer plan written before coding — 31 ACs, 14 use cases, risk table, testing strategy |
+| [docs/ac-evidence.md](docs/ac-evidence.md) | One record per AC: curl + psql + screenshot evidence, all 31 ticked |
+| [docs/session-log.md](docs/session-log.md) | Chronological log of the reviewer's prompts and my responses during the session |
+| [docs/skills-catalog.md](docs/skills-catalog.md) | The custom skills that were already loaded before the clock started |
+| `README.md` | This file — narrative + architecture + API + business rules |
+
+Everything is on GitHub, not in an external system, so the reviewer has one place to read.
 
 ---
 
