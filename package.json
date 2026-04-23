@@ -1,0 +1,27 @@
+{
+  "name": "mini-campaign-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini Campaign Manager — a simplified MarTech tool for creating, scheduling, and tracking email campaigns.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"yarn workspace @mcm/api dev\" \"yarn workspace @mcm/web dev\"",
+    "build": "yarn workspaces foreach -A --topological-dev run build",
+    "test": "yarn workspaces foreach -A --exclude mini-campaign-manager run test",
+    "lint": "yarn workspaces foreach -A --exclude mini-campaign-manager run lint",
+    "migrate": "yarn workspace @mcm/api migrate",
+    "seed": "yarn workspace @mcm/api seed",
+    "db:reset": "yarn workspace @mcm/api db:reset"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "typescript": "^5.5.4"
+  },
+  "packageManager": "yarn@4.5.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
