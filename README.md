@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/039b0638-cbff-4135-998d-029f812e3eeb
+
 # Mini Campaign Manager
 
 A simplified MarTech tool for marketers to create, schedule, and track email campaigns.
