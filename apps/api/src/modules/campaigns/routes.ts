@@ -8,6 +8,7 @@ import {
 import { requireAuth } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import * as service from './service.js';
+import { triggerSend } from './send.js';
 import { AppError } from '../../errors/AppError.js';
 
 export const campaignsRouter: Router = Router();
@@ -96,4 +97,13 @@ campaignsRouter.get('/:id/stats', async (req, res, next) => {
   }
 });
 
-// POST /:id/send is registered in step 6 (workers/sendCampaign.ts wires it up)
+campaignsRouter.post('/:id/send', async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    if (!id) throw AppError.notFound('Campaign not found');
+    const campaign = await triggerSend(req.user!.sub, id);
+    res.status(202).json(campaign);
+  } catch (err) {
+    next(err);
+  }
+});
