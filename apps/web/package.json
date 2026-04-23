@@ -11,8 +11,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcm/shared": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
+    "@mcm/shared": "workspace:*",
     "@reduxjs/toolkit": "^2.2.7",
     "@tanstack/react-query": "^5.56.2",
     "axios": "^1.7.7",

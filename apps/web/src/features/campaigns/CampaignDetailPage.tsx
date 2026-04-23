@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-// Polling is driven by refetchInterval in useCampaign — no local polling state.
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { CampaignStatus } from '@mcm/shared';
 import {
   useCampaign,
@@ -10,22 +9,24 @@ import {
 } from '../../api/hooks';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Skeleton } from '../../components/Skeleton';
+import { Button } from '../../components/Button';
+import { Card, CardBody, CardHeader } from '../../components/Card';
 import { useAppDispatch } from '../../store/hooks';
 import { toastShown } from '../../store/uiSlice';
 import { extractApiError } from '../../api/client';
 import { cn } from '../../lib/cn';
 
-function formatRate(rate: number, sent: number) {
-  // Zero-recipient / zero-sent: show an em-dash rather than a misleading 0%
-  if (sent === 0) return '—';
+function formatRate(rate: number, denom: number) {
+  if (denom === 0) return '—';
   return `${(rate * 100).toFixed(1)}%`;
 }
 
-function ProgressBar({ value, className }: { value: number; className?: string }) {
+function ProgressBar({ value, tone = 'emerald' }: { value: number; tone?: 'emerald' | 'firefly' }) {
+  const barCls = tone === 'emerald' ? 'bg-emerald-500' : 'bg-firefly-300';
   return (
-    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-slate-200', className)}>
+    <div className="h-2 w-full overflow-hidden rounded-full bg-ecru-200">
       <div
-        className="h-full bg-slate-900 transition-all"
+        className={cn('h-full rounded-full transition-all', barCls)}
         style={{ width: `${Math.min(100, Math.max(0, value * 100))}%` }}
       />
     </div>
@@ -49,14 +50,14 @@ export function CampaignDetailPage() {
   const send = useSendCampaign(id ?? '');
   const schedule = useScheduleCampaign(id ?? '');
   const del = useDeleteCampaign();
-
   const [scheduleAt, setScheduleAt] = useState('');
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -65,11 +66,19 @@ export function CampaignDetailPage() {
     const msg = extractApiError(error);
     const notFound = /not found/i.test(msg);
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-        <div className="font-medium">
-          {notFound ? 'Campaign not found' : 'Failed to load campaign'}
+      <div className="mx-auto max-w-md rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-severity-high">
+          !
         </div>
-        <div className="mt-1 text-xs">{msg}</div>
+        <h3 className="mt-4 font-display text-lg font-semibold text-ink">
+          {notFound ? 'Campaign not found' : 'Failed to load campaign'}
+        </h3>
+        <p className="mt-1 text-sm text-firefly-400">{msg}</p>
+        <div className="mt-5">
+          <Link to="/campaigns">
+            <Button variant="secondary" size="sm">← Back to campaigns</Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -117,150 +126,227 @@ export function CampaignDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{data.name}</h1>
-          <p className="text-sm text-slate-600">{data.subject}</p>
-        </div>
-        <StatusBadge status={data.status} />
-      </div>
+      {/* Breadcrumb */}
+      <nav className="text-sm text-firefly-400">
+        <Link to="/campaigns" className="hover:text-ink">Campaigns</Link>
+        <span className="mx-2">/</span>
+        <span className="text-ink">{data.name}</span>
+      </nav>
 
+      {/* Hero */}
+      <Card className="overflow-hidden">
+        <div className="flex items-start justify-between gap-6 p-6">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3">
+              <StatusBadge status={data.status} size="md" />
+              {data.scheduled_at && data.status === 'scheduled' && (
+                <span className="text-xs text-firefly-400">
+                  Scheduled for{' '}
+                  {new Date(data.scheduled_at).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              )}
+            </div>
+            <h1 className="mt-3 font-display text-3xl font-semibold text-ink">{data.name}</h1>
+            <p className="mt-1 text-firefly-500">{data.subject}</p>
+          </div>
+        </div>
+        {data.body && (
+          <div className="border-t border-firefly-200/60 bg-ecru-100/60 px-6 py-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-firefly-500">
+              {data.body}
+            </p>
+          </div>
+        )}
+      </Card>
+
+      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total" value={data.stats.total.toString()} />
-        <StatCard label="Sent" value={data.stats.sent.toString()} />
-        <StatCard label="Failed" value={data.stats.failed.toString()} />
-        <StatCard label="Opened" value={data.stats.opened.toString()} />
+        <StatTile label="Recipients" value={data.stats.total} tone="ink" />
+        <StatTile label="Sent" value={data.stats.sent} tone="emerald" />
+        <StatTile label="Failed" value={data.stats.failed} tone="severity" />
+        <StatTile label="Opened" value={data.stats.opened} tone="ink" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border bg-white p-4">
-          <div className="mb-1 flex items-center justify-between text-sm">
-            <span className="font-medium">Send rate</span>
-            <span className="text-slate-600">
-              {formatRate(data.stats.send_rate, data.stats.total)}
-            </span>
-          </div>
-          <ProgressBar value={data.stats.send_rate} />
-        </div>
-        <div className="rounded-lg border bg-white p-4">
-          <div className="mb-1 flex items-center justify-between text-sm">
-            <span className="font-medium">Open rate</span>
-            <span className="text-slate-600">
-              {formatRate(data.stats.open_rate, data.stats.sent)}
-            </span>
-          </div>
-          <ProgressBar value={data.stats.open_rate} />
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardBody>
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-sm font-medium text-ink">Send rate</span>
+              <span className="font-display text-xl font-semibold text-emerald-900">
+                {formatRate(data.stats.send_rate, data.stats.total)}
+              </span>
+            </div>
+            <ProgressBar value={data.stats.send_rate} tone="emerald" />
+            <p className="mt-2 text-xs text-firefly-400">
+              {data.stats.sent} / {data.stats.total} recipients
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-sm font-medium text-ink">Open rate</span>
+              <span className="font-display text-xl font-semibold text-firefly-500">
+                {formatRate(data.stats.open_rate, data.stats.sent)}
+              </span>
+            </div>
+            <ProgressBar value={data.stats.open_rate} tone="firefly" />
+            <p className="mt-2 text-xs text-firefly-400">
+              {data.stats.opened} opens of {data.stats.sent} sent
+            </p>
+          </CardBody>
+        </Card>
       </div>
 
-      <div className="space-y-3 rounded-lg border bg-white p-4">
-        <h2 className="text-lg font-semibold">Actions</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {actions.schedule && (
-            <div className="flex items-center gap-2">
-              <input
-                type="datetime-local"
-                value={scheduleAt}
-                onChange={(e) => setScheduleAt(e.target.value)}
-                className="rounded-md border px-3 py-1.5 text-sm"
-              />
-              <button
-                onClick={onSchedule}
-                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
+      {/* Actions */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-display text-lg font-semibold text-ink">Actions</h2>
+        </CardHeader>
+        <CardBody>
+          <div className="flex flex-wrap items-center gap-2">
+            {actions.schedule && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="datetime-local"
+                  value={scheduleAt}
+                  onChange={(e) => setScheduleAt(e.target.value)}
+                  className="rounded-xl border border-firefly-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                />
+                <Button variant="secondary" size="sm" onClick={onSchedule}>
+                  Schedule
+                </Button>
+              </div>
+            )}
+            {actions.send && (
+              <Button
+                onClick={onSend}
+                disabled={send.isPending || data.stats.total === 0}
+                title={data.stats.total === 0 ? 'Add recipients before sending' : undefined}
               >
-                Schedule
-              </button>
+                {send.isPending ? 'Sending…' : 'Send now'}
+              </Button>
+            )}
+            {actions.delete && (
+              <Button variant="danger" size="sm" onClick={onDelete}>
+                Delete
+              </Button>
+            )}
+            {data.status === 'sending' && (
+              <span className="inline-flex items-center gap-2 text-sm text-amber-700">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                Sending… stats refresh every 2s
+              </span>
+            )}
+            {data.status === 'sent' && (
+              <span className="text-sm text-emerald-800">
+                Campaign sent — no further actions.
+              </span>
+            )}
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Recipients */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold text-ink">
+              Recipients
+              <span className="ml-2 text-sm font-normal text-firefly-400">
+                {data.recipients.length}
+              </span>
+            </h2>
+          </div>
+        </CardHeader>
+        <div className="divide-y divide-firefly-200/60">
+          {data.recipients.length === 0 && (
+            <div className="p-8 text-center text-sm text-firefly-400">
+              No recipients attached to this campaign.
             </div>
           )}
-          {actions.send && (
-            <button
-              onClick={onSend}
-              disabled={send.isPending || data.stats.total === 0}
-              title={data.stats.total === 0 ? 'Add recipients before sending' : undefined}
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+          {data.recipients.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between gap-4 px-5 py-3 text-sm"
             >
-              {send.isPending ? 'Sending…' : 'Send now'}
-            </button>
-          )}
-          {actions.delete && (
-            <button
-              onClick={onDelete}
-              className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
-            >
-              Delete
-            </button>
-          )}
-          {data.status === 'sending' && (
-            <span className="text-sm text-amber-700">Sending… stats refresh every 2s</span>
-          )}
-          {data.status === 'sent' && (
-            <span className="text-sm text-emerald-700">Campaign sent — no further actions.</span>
-          )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-ink">
+                  {r.recipient?.name ?? '—'}
+                </div>
+                <div className="truncate text-xs text-firefly-400">
+                  {r.recipient?.email ?? '—'}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {r.sent_at && (
+                  <span className="hidden text-xs text-firefly-400 sm:inline">
+                    {new Date(r.sent_at).toLocaleTimeString(undefined, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </span>
+                )}
+                <RecipientStatusPill status={r.status} />
+              </div>
+            </div>
+          ))}
         </div>
-        {data.scheduled_at && (
-          <p className="text-xs text-slate-500">
-            Scheduled for: {new Date(data.scheduled_at).toLocaleString()}
-          </p>
-        )}
-      </div>
-
-      <div className="rounded-lg border bg-white">
-        <div className="border-b px-4 py-2 text-sm font-medium">
-          Recipients ({data.recipients.length})
-        </div>
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-600">
-            <tr>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Sent at</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.recipients.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
-                  No recipients attached to this campaign.
-                </td>
-              </tr>
-            )}
-            {data.recipients.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="px-4 py-2">{r.recipient?.email ?? '—'}</td>
-                <td className="px-4 py-2">{r.recipient?.name ?? '—'}</td>
-                <td className="px-4 py-2">
-                  <RecipientStatusPill status={r.status} />
-                </td>
-                <td className="px-4 py-2 text-slate-600">
-                  {r.sent_at ? new Date(r.sent_at).toLocaleString() : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      </Card>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: 'ink' | 'emerald' | 'severity';
+}) {
+  const toneCls =
+    tone === 'emerald'
+      ? 'text-emerald-900'
+      : tone === 'severity'
+        ? value > 0
+          ? 'text-severity-high'
+          : 'text-firefly-400'
+        : 'text-ink';
   return (
-    <div className="rounded-lg border bg-white p-4">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="text-2xl font-semibold">{value}</div>
-    </div>
+    <Card>
+      <CardBody>
+        <div className="text-xs font-medium uppercase tracking-wider text-firefly-400">
+          {label}
+        </div>
+        <div className={cn('mt-1 font-display text-3xl font-semibold', toneCls)}>
+          {value.toLocaleString()}
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
 function RecipientStatusPill({ status }: { status: 'pending' | 'sent' | 'failed' }) {
   const styles: Record<typeof status, string> = {
-    pending: 'bg-slate-100 text-slate-700',
-    sent: 'bg-emerald-100 text-emerald-700',
-    failed: 'bg-red-100 text-red-700',
+    pending: 'bg-ecru-200 text-firefly-500 ring-ecru-300/60',
+    sent: 'bg-emerald-100 text-emerald-900 ring-emerald-300/60',
+    failed: 'bg-red-50 text-severity-high ring-red-200',
   };
   return (
-    <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', styles[status])}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1',
+        styles[status],
+      )}
+    >
       {status}
     </span>
   );

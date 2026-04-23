@@ -7,6 +7,7 @@ import { loggedIn } from '../../store/authSlice';
 import { useRegister } from '../../api/hooks';
 import { extractApiError } from '../../api/client';
 import { toastShown } from '../../store/uiSlice';
+import { Button } from '../../components/Button';
 
 export function RegisterPage() {
   const token = useAppSelector((s) => s.auth.token);
@@ -32,59 +33,63 @@ export function RegisterPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border bg-white p-6 shadow-sm"
-      >
-        <h1 className="text-xl font-semibold">Create an account</h1>
+    <div className="flex min-h-screen items-center justify-center p-6">
+      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-ink">Create an account</h2>
+          <p className="mt-1 text-sm text-firefly-400">Get started in under a minute.</p>
+        </div>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Email</span>
-          <input
-            type="email"
-            autoComplete="email"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            {...register('email')}
-          />
-          {errors.email && <span className="text-xs text-red-600">{errors.email.message}</span>}
-        </label>
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink">Email</span>
+            <input
+              type="email"
+              autoComplete="email"
+              className="w-full rounded-xl border border-firefly-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              {...register('email')}
+            />
+            {errors.email && (
+              <span className="mt-1 block text-xs text-severity-high">{errors.email.message}</span>
+            )}
+          </label>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Name</span>
-          <input
-            type="text"
-            autoComplete="name"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            {...register('name')}
-          />
-          {errors.name && <span className="text-xs text-red-600">{errors.name.message}</span>}
-        </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink">Name</span>
+            <input
+              type="text"
+              autoComplete="name"
+              className="w-full rounded-xl border border-firefly-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              {...register('name')}
+            />
+            {errors.name && (
+              <span className="mt-1 block text-xs text-severity-high">{errors.name.message}</span>
+            )}
+          </label>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Password</span>
-          <input
-            type="password"
-            autoComplete="new-password"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            {...register('password')}
-          />
-          {errors.password && (
-            <span className="text-xs text-red-600">{errors.password.message}</span>
-          )}
-        </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-ink">Password</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              className="w-full rounded-xl border border-firefly-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              {...register('password')}
+            />
+            {errors.password && (
+              <span className="mt-1 block text-xs text-severity-high">
+                {errors.password.message}
+              </span>
+            )}
+          </label>
+        </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-md bg-slate-900 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? 'Creating…' : 'Create account'}
-        </button>
+        </Button>
 
-        <p className="text-center text-xs text-slate-600">
+        <p className="text-center text-xs text-firefly-400">
           Have an account?{' '}
-          <Link to="/login" className="text-slate-900 underline">
+          <Link to="/login" className="font-medium text-emerald-900 hover:underline">
             Sign in
           </Link>
         </p>

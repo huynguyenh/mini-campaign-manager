@@ -15,15 +15,15 @@ export function Toaster() {
   }, [toasts, dispatch]);
 
   return (
-    <div className="fixed right-4 top-4 z-50 flex flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 top-4 z-50 flex flex-col gap-2">
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            'rounded-md px-3 py-2 text-sm shadow-md',
-            t.kind === 'error' && 'bg-red-600 text-white',
-            t.kind === 'success' && 'bg-emerald-600 text-white',
-            t.kind === 'info' && 'bg-slate-800 text-white',
+            'pointer-events-auto cursor-pointer rounded-xl px-4 py-3 text-sm font-medium shadow-card-hover ring-1',
+            t.kind === 'error' && 'bg-red-600 text-white ring-red-700',
+            t.kind === 'success' && 'bg-emerald-900 text-white ring-emerald-800',
+            t.kind === 'info' && 'bg-ink text-white ring-firefly-500',
           )}
           onClick={() => dispatch(toastDismissed(t.id))}
         >

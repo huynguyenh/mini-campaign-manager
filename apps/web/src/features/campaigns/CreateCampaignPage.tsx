@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   createCampaignSchema,
   createRecipientSchema,
@@ -16,6 +16,8 @@ import {
 } from '../../api/hooks';
 import { extractApiError } from '../../api/client';
 import { cn } from '../../lib/cn';
+import { Button } from '../../components/Button';
+import { Card, CardBody, CardHeader } from '../../components/Card';
 
 export function CreateCampaignPage() {
   const navigate = useNavigate();
@@ -72,105 +74,135 @@ export function CreateCampaignPage() {
     });
   };
 
+  const inputCls =
+    'w-full rounded-xl border border-firefly-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20';
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">New campaign</h1>
+    <div className="mx-auto max-w-3xl space-y-6">
+      {/* Breadcrumb */}
+      <nav className="text-sm text-firefly-400">
+        <Link to="/campaigns" className="hover:text-ink">Campaigns</Link>
+        <span className="mx-2">/</span>
+        <span className="text-ink">New</span>
+      </nav>
 
-      <form onSubmit={onSubmit} className="space-y-4 rounded-lg border bg-white p-6">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Name</span>
-          <input className="w-full rounded-md border px-3 py-2 text-sm" {...register('name')} />
-          {errors.name && <span className="text-xs text-red-600">{errors.name.message}</span>}
-        </label>
+      <div>
+        <h1 className="font-display text-3xl font-semibold text-ink">New campaign</h1>
+        <p className="mt-1 text-sm text-firefly-400">
+          Drafts stay editable until you schedule or send them.
+        </p>
+      </div>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Subject</span>
-          <input
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            {...register('subject')}
-          />
-          {errors.subject && (
-            <span className="text-xs text-red-600">{errors.subject.message}</span>
-          )}
-        </label>
+      <form onSubmit={onSubmit} className="space-y-5">
+        <Card>
+          <CardBody className="space-y-5">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-ink">Name</span>
+              <input className={inputCls} placeholder="Welcome series" {...register('name')} />
+              {errors.name && (
+                <span className="mt-1 block text-xs text-severity-high">
+                  {errors.name.message}
+                </span>
+              )}
+            </label>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Body</span>
-          <textarea
-            rows={6}
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            {...register('body')}
-          />
-          {errors.body && <span className="text-xs text-red-600">{errors.body.message}</span>}
-        </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-ink">Subject line</span>
+              <input
+                className={inputCls}
+                placeholder="Welcome aboard!"
+                {...register('subject')}
+              />
+              {errors.subject && (
+                <span className="mt-1 block text-xs text-severity-high">
+                  {errors.subject.message}
+                </span>
+              )}
+            </label>
 
-        <div className="space-y-3 rounded-md border border-slate-200 p-3">
-          <div className="flex items-center justify-between">
-            <div className="font-medium text-sm">Recipients</div>
-            <div className="text-xs text-slate-500">{selected.size} selected</div>
-          </div>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-ink">Body</span>
+              <textarea
+                rows={6}
+                className={cn(inputCls, 'font-mono leading-relaxed')}
+                placeholder="Hi {name}, ..."
+                {...register('body')}
+              />
+              {errors.body && (
+                <span className="mt-1 block text-xs text-severity-high">
+                  {errors.body.message}
+                </span>
+              )}
+            </label>
+          </CardBody>
+        </Card>
 
-          <div className="flex items-end gap-2">
-            <input
-              placeholder="email@example.com"
-              value={newRec.email}
-              onChange={(e) => setNewRec((s) => ({ ...s, email: e.target.value }))}
-              className="flex-1 rounded-md border px-3 py-1.5 text-sm"
-            />
-            <input
-              placeholder="Name"
-              value={newRec.name}
-              onChange={(e) => setNewRec((s) => ({ ...s, name: e.target.value }))}
-              className="flex-1 rounded-md border px-3 py-1.5 text-sm"
-            />
-            <button
-              type="button"
-              onClick={addRecipient}
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
-            >
-              Add
-            </button>
-          </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold text-ink">Recipients</h2>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900">
+                {selected.size} selected
+              </span>
+            </div>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                placeholder="email@example.com"
+                value={newRec.email}
+                onChange={(e) => setNewRec((s) => ({ ...s, email: e.target.value }))}
+                className={inputCls}
+              />
+              <input
+                placeholder="Full name"
+                value={newRec.name}
+                onChange={(e) => setNewRec((s) => ({ ...s, name: e.target.value }))}
+                className={inputCls}
+              />
+              <Button type="button" variant="secondary" onClick={addRecipient}>
+                + Add
+              </Button>
+            </div>
 
-          <div className="max-h-48 overflow-y-auto rounded-md border border-slate-100">
-            {recipients?.data.length === 0 && (
-              <div className="p-3 text-xs text-slate-500">No recipients yet — add one above.</div>
-            )}
-            {recipients?.data.map((r) => (
-              <label
-                key={r.id}
-                className={cn(
-                  'flex cursor-pointer items-center gap-2 border-b px-3 py-1.5 text-sm last:border-b-0',
-                  selected.has(r.id) && 'bg-slate-50',
-                )}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(r.id)}
-                  onChange={() => toggle(r.id)}
-                />
-                <span className="font-medium">{r.name}</span>
-                <span className="text-slate-500">{r.email}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+            <div className="max-h-64 overflow-y-auto rounded-xl border border-firefly-200/60 bg-ecru-100/40">
+              {recipients?.data.length === 0 && (
+                <div className="p-4 text-xs text-firefly-400">
+                  No recipients yet — add one above.
+                </div>
+              )}
+              {recipients?.data.map((r) => (
+                <label
+                  key={r.id}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-3 border-b border-firefly-200/60 px-4 py-2.5 text-sm last:border-b-0',
+                    'hover:bg-white/60 transition-colors',
+                    selected.has(r.id) && 'bg-emerald-100/40',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(r.id)}
+                    onChange={() => toggle(r.id)}
+                    className="h-4 w-4 rounded border-firefly-200 text-emerald-900 focus:ring-emerald-500"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-ink">{r.name}</div>
+                    <div className="truncate text-xs text-firefly-400">{r.email}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
 
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/campaigns')}
-            className="rounded-md border px-3 py-1.5 text-sm"
-          >
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={() => navigate('/campaigns')}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
-          >
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Creating…' : 'Create campaign'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
