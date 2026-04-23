@@ -168,10 +168,24 @@ The process was explicit about *what I delegated*, *what I reviewed*, and *what 
 
 ## Known limitations (documented follow-ups)
 
-- `scheduled` campaigns are not automatically fired when `scheduled_at` arrives — a cron/scheduler service is out of scope. Workaround: hit `POST /campaigns/:id/send` manually.
-- If the API crashes mid-send, the campaign stays in `sending`. Manual unstick: `UPDATE campaigns SET status='draft' WHERE id = ...;`.
-- No open-rate pixel tracker implemented; `opened_at` column exists but stays `null`. Stats math still handles the open_rate case correctly.
-- No refresh-token rotation; JWT is valid for 24 h, user must log in again.
-- Single "user" role; no team / RBAC.
+- **Scheduler not implemented.** `scheduled` campaigns are not automatically fired when `scheduled_at` arrives — a cron/scheduler service is out of scope. Workaround: hit `POST /campaigns/:id/send` manually.
+- **In-process worker.** If the API crashes mid-send, the campaign stays in `sending`. Manual unstick: `UPDATE campaigns SET status='draft' WHERE id = ...;`. In production swap for BullMQ + Redis so retries, dead-lettering, and horizontal scale work out of the box.
+- **No open-rate tracking.** `opened_at` column exists but there is no pixel endpoint. Stats math still handles the `open_rate` denominator case correctly.
+- **Edit UI not implemented.** `PATCH /campaigns/:id` works via the API but the detail page has no inline edit form — scoped out to stay inside the time budget. State-machine rule is still enforced server-side (409 when not draft).
+- **Recipients are global, not per-user.** The data model has no `recipients.owner_id`, so `GET /recipients` exposes every recipient in the system and `POST /recipients` is shared state. For a multi-tenant SaaS this would need a `created_by` column + filter; out of scope here.
+- **No refresh-token rotation.** JWT is valid for 24 h, user must log in again. In production I would move to short-lived access + httpOnly-cookie refresh tokens.
+- **JWT sessionStorage on the FE.** XSS-accessible within the tab; chosen over `localStorage` for narrower blast radius and over httpOnly cookies because the latter requires CSRF infra that would not fit in 6 h.
+- **CORS open to all origins.** Demo-only convenience; production would lock down to the web origin.
+- **Single "user" role; no team / RBAC.**
 
-In production I would swap the in-process send worker for BullMQ + Redis so retries, dead-lettering, and horizontal scale work out of the box.
+## Security posture (for the public repo reviewer)
+
+- `.env` is gitignored; only `.env.example` is committed, with placeholder values.
+- Bcrypt rounds = 10, 8-char minimum password (shared zod schema, enforced FE + BE).
+- `JWT_SECRET` minimum 32 chars enforced at boot; `docker-compose` fails fast with a clear message if it's unset.
+- `helmet()` + `express-rate-limit` (20 requests / 15 min on `/auth`) in front of the API.
+- Login returns a generic `INVALID_CREDENTIALS` for both wrong-password and unknown-email paths to avoid user enumeration.
+- Cross-user access on any campaign route returns `404 NOT_FOUND` (not 403) so callers can't probe which campaign IDs exist.
+- All DB access is parameterized (Sequelize ORM + named `:id` replacement for the one raw `COUNT FILTER` stats query).
+- All mutating endpoints validate via Zod; error responses share a consistent `{ error: { code, message, details? } }` envelope with no stack-trace leakage.
+- React escapes all user-provided fields by default; no `dangerouslySetInnerHTML`.

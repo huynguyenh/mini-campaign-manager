@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+// Polling is driven by refetchInterval in useCampaign — no local polling state.
 import type { CampaignStatus } from '@mcm/shared';
 import {
   useCampaign,
@@ -43,15 +44,7 @@ export function CampaignDetailPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  // Poll every 2s while the campaign is sending
-  const [isPolling, setIsPolling] = useState(false);
-  const { data, isLoading, isError, error } = useCampaign(id, {
-    refetchInterval: isPolling ? 2000 : false,
-  });
-
-  // Flip polling on/off based on status
-  if (data && data.status === 'sending' && !isPolling) setIsPolling(true);
-  if (data && data.status !== 'sending' && isPolling) setIsPolling(false);
+  const { data, isLoading, isError, error } = useCampaign(id);
 
   const send = useSendCampaign(id ?? '');
   const schedule = useScheduleCampaign(id ?? '');
@@ -70,12 +63,11 @@ export function CampaignDetailPage() {
 
   if (isError) {
     const msg = extractApiError(error);
-    const forbidden = /forbidden|access/i.test(msg);
     const notFound = /not found/i.test(msg);
     return (
       <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         <div className="font-medium">
-          {forbidden ? 'You do not have access to this campaign' : notFound ? 'Campaign not found' : 'Failed to load campaign'}
+          {notFound ? 'Campaign not found' : 'Failed to load campaign'}
         </div>
         <div className="mt-1 text-xs">{msg}</div>
       </div>
@@ -106,7 +98,6 @@ export function CampaignDetailPage() {
   const onSend = async () => {
     try {
       await send.mutateAsync();
-      setIsPolling(true);
       dispatch(toastShown('info', 'Sending…'));
     } catch (err) {
       dispatch(toastShown('error', extractApiError(err)));

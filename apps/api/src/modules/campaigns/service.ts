@@ -12,12 +12,6 @@ import type {
 } from '@mcm/shared';
 import { computeStats } from './stats.js';
 
-function requireOwnership(campaign: Campaign, userId: string) {
-  if (campaign.created_by !== userId) {
-    throw AppError.forbidden('You do not have access to this campaign');
-  }
-}
-
 function requireDraft(campaign: Campaign) {
   if (campaign.status !== 'draft') {
     throw AppError.conflict(
@@ -27,10 +21,12 @@ function requireDraft(campaign: Campaign) {
   }
 }
 
+// Collapse cross-user access into 404 rather than 403 so callers can't probe
+// whether a given campaign ID exists. UUIDs make enumeration impractical, but
+// keeping the response shape identical removes the side channel entirely.
 async function loadOwnedCampaign(id: string, userId: string): Promise<Campaign> {
-  const campaign = await Campaign.findByPk(id);
+  const campaign = await Campaign.findOne({ where: { id, created_by: userId } });
   if (!campaign) throw AppError.notFound('Campaign not found');
-  requireOwnership(campaign, userId);
   return campaign;
 }
 
@@ -194,5 +190,3 @@ export async function getStats(userId: string, id: string): Promise<CampaignStat
   return computeStatsFor(id);
 }
 
-// Exported for worker (step 6)
-export { loadOwnedCampaign, requireDraft };

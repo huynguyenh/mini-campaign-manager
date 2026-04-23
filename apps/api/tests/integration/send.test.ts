@@ -91,6 +91,17 @@ describe('POST /campaigns/:id/send', () => {
     expect(res.body.error.code).toBe('CAMPAIGN_IN_FLIGHT');
   });
 
+  it('concurrent sends: exactly one 202 and one 409 (atomic state transition)', async () => {
+    const c = await freshCampaignWithRecipients();
+    // Both requests fire against a draft campaign simultaneously
+    const [r1, r2] = await Promise.all([
+      request(app).post(`/campaigns/${c.id}/send`).set('Authorization', `Bearer ${token}`),
+      request(app).post(`/campaigns/${c.id}/send`).set('Authorization', `Bearer ${token}`),
+    ]);
+    const statuses = [r1.status, r2.status].sort();
+    expect(statuses).toEqual([202, 409]);
+  });
+
   it('send on an already-sent campaign returns 409 CAMPAIGN_ALREADY_SENT', async () => {
     const c = await freshCampaignWithRecipients();
     c.status = 'sent';

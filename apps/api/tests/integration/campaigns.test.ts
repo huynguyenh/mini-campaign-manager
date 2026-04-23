@@ -78,7 +78,7 @@ describe('Campaigns — auth & ownership', () => {
     expect(res.status).toBe(401);
   });
 
-  it('403 when another user tries to read a campaign', async () => {
+  it('returns 404 (not 403) when another user tries to read a campaign — no ID existence leak', async () => {
     const created = await Campaign.create({
       name: 'Private',
       subject: 's',
@@ -90,7 +90,7 @@ describe('Campaigns — auth & ownership', () => {
     const res = await request(app)
       .get(`/campaigns/${created.id}`)
       .set('Authorization', `Bearer ${tokenB}`);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 });
 

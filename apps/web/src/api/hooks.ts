@@ -49,7 +49,7 @@ export function useCampaigns(page: number, pageSize = 10) {
   });
 }
 
-export function useCampaign(id: string | undefined, opts?: { refetchInterval?: number | false }) {
+export function useCampaign(id: string | undefined) {
   return useQuery({
     queryKey: ['campaign', id],
     queryFn: async () => {
@@ -57,7 +57,10 @@ export function useCampaign(id: string | undefined, opts?: { refetchInterval?: n
       return data;
     },
     enabled: !!id,
-    refetchInterval: opts?.refetchInterval,
+    // Self-regulated polling: refetch every 2s while the campaign is sending,
+    // off otherwise. React Query passes the latest query state to the function
+    // so we can drive this off the server's status without local state.
+    refetchInterval: (q) => (q.state.data?.status === 'sending' ? 2000 : false),
   });
 }
 
