@@ -3,6 +3,7 @@ import cors from 'cors';
 import { pinoHttp } from 'pino-http';
 import { logger } from './utils/logger.js';
 import { authRouter } from './modules/auth/routes.js';
+import { campaignsRouter } from './modules/campaigns/routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 export function createApp(): Express {
@@ -17,8 +18,9 @@ export function createApp(): Express {
   });
 
   app.use('/auth', authRouter);
+  app.use('/campaigns', campaignsRouter);
 
-  // Other routers plugged in here in later steps (campaigns, recipients)
+  // Recipients router plugged in in step 5
 
   app.use(notFoundHandler);
   app.use(errorHandler);
